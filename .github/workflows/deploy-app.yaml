@@ -5,11 +5,11 @@ name: deploy-app
             - openai-pipeline
     workflow_dispatch: {}
 env:
-    ACR_RESOURCE_GROUP: openaml
-    AZURE_CONTAINER_REGISTRY: nlpwork
-    CLUSTER_NAME: aks-aksembed-en37
-    CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en37
-    CONTAINER_NAME: image-workflow-1693342670355
+    ACR_RESOURCE_GROUP: embedding-openai-rg-en38
+    AZURE_CONTAINER_REGISTRY: craksembeden38sdrq5apqo355u
+    CLUSTER_NAME: aks-aksembed-en38
+    CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en38
+    CONTAINER_NAME: oai-embeddings
     DEPLOYMENT_MANIFEST_PATH: |
         ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/batch-deployment.yaml
         ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/batch-service.yaml
