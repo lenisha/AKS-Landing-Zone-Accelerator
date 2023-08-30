@@ -5,10 +5,10 @@ name: deploy-openaiapp
             - openai-pipeline
     workflow_dispatch: {}
 env:
-    ACR_RESOURCE_GROUP: embedding-openai-rg-en38
-    AZURE_CONTAINER_REGISTRY: craksembeden38sdrq5apqo355u
-    CLUSTER_NAME: aks-aksembed-en38
-    CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en38
+    ACR_RESOURCE_GROUP: embedding-openai-rg-en40
+    AZURE_CONTAINER_REGISTRY: craksembeden404k2qo6zfopubm
+    CLUSTER_NAME: aks-aksembed-en40
+    CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en40
     CONTAINER_NAME: oai-embeddings
     KUSTOMIZE_PATH: ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/
 
