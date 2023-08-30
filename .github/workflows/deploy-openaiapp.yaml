@@ -11,7 +11,7 @@ env:
     CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en38
     CONTAINER_NAME: oai-embeddings
     KUSTOMIZE_PATH: ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/
-    ARM_DEPLOY_NAME: main-en38
+
 jobs:
     buildImage:
         permissions:
@@ -61,26 +61,19 @@ jobs:
             - name: Save variables 
               shell: bash
               run: |
-                CSIIdentity=($(az aks show -g ${{ env.CLUSTER_RESOURCE_GROUP }} -n ${{ env.CLUSTER_NAME }} --query "[addonProfiles.azureKeyvaultSecretsProvider.identity.resourceId,addonProfiles.azureKeyvaultSecretsProvider.identity.clientId]" -o tsv |  cut -d '/' -f 5,9 --output-delimiter ' '))
-                CLIENT_ID=${CSIIdentity[3]} && echo "CLIENT_ID is $CLIENT_ID"
-                OPENAI_ACCOUNTNAME=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }} --query properties.outputs.openAIAccountName.value -o tsv) && echo "The Azure OpenAI account name is $OPENAI_ACCOUNTNAME"
-                OPENAI_API_BASE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIURL.value -o tsv) && echo "The Azure OpenAI instance API URL is $OPENAI_API_BASE"
-                OPENAI_RGNAME=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIRGName.value -o tsv) && echo "The Azure OpenAI Resource Group is $OPENAI_RGNAME"
-                OPENAI_ENGINE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIEngineName.value -o tsv) && echo "The Azure OpenAI GPT Model is $OPENAI_ENGINE"
-                OPENAI_EMBEDDINGS_ENGINE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIEmbeddingEngine.value -o tsv) && echo "The Azure OpenAI Embedding Model is $OPENAI_EMBEDDINGS_ENGINE"
-
                 cat << EOF > .env
-                CLIENT_ID=$CLIENT_ID
+                CLIENT_ID=${{ secrets.CLIENT_ID }}
                 TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
-                KV_NAME=$KV_NAME
-                OPENAI_API_BASE=$OPENAI_API_BASE
-                OPENAI_ENGINE=$OPENAI_ENGINE
-                OPENAI_EMBEDDINGS_ENGINE=$OPENAI_EMBEDDINGS_ENGINE
-                LOCATION=$LOCATION
-                BLOB_ACCOUNT_NAME=$BLOB_ACCOUNT_NAME
-                FORM_RECOGNIZER_ENDPOINT=$FORM_RECOGNIZER_ENDPOINT
-                DNS_NAME=openai-$UNIQUESTRING.$INGRESS_IP.nip.io
+                KV_NAME=${{ secrets.KV_NAME }}
+                OPENAI_API_BASE=${{ secrets.OPENAI_API_BASE }}
+                OPENAI_ENGINE=${{ secrets.OPENAI_ENGINE }}
+                OPENAI_EMBEDDINGS_ENGINE=${{ secrets.OPENAI_EMBEDDINGS_ENGINE }}
+                LOCATION=${{ secrets.LOCATION }}
+                BLOB_ACCOUNT_NAME=${{ secrets.BLOB_ACCOUNT_NAME }}
+                FORM_RECOGNIZER_ENDPOINT=${{ secrets.FORM_RECOGNIZER_ENDPOINT }}
+                DNS_NAME=openai-${{ env.INGRESS_IP }}.nip.io
                 EOF
+                cat .env
             # Runs Kustomize to create manifest files
             - name: Bake deployment
               uses: azure/k8s-bake@v2
