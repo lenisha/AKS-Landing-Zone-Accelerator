@@ -10,15 +10,8 @@ env:
     CLUSTER_NAME: aks-aksembed-en38
     CLUSTER_RESOURCE_GROUP: embedding-openai-rg-en38
     CONTAINER_NAME: oai-embeddings
-    DEPLOYMENT_MANIFEST_PATH: |
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/batch-deployment.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/batch-service.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/kustomization.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/networkpolicy.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/redis-deployment.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/redis-service.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/web-deployment.yaml
-        ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/bases/web-service.yaml
+    KUSTOMIZE_PATH: ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/
+    ARM_DEPLOY_NAME: main-en38
 jobs:
     buildImage:
         permissions:
@@ -64,10 +57,47 @@ jobs:
                 cluster-name: ${{ env.CLUSTER_NAME }}
                 resource-group: ${{ env.CLUSTER_RESOURCE_GROUP }}
                 use-kubelogin: "true"
-            - uses: Azure/k8s-deploy@v4
-              name: Deploys application
+            # Save Kustomization variables
+            - name: Save variables 
+              shell: bash
+              run: |
+                CSIIdentity=($(az aks show -g $RGNAME -n $AKSCLUSTER --query "[addonProfiles.azureKeyvaultSecretsProvider.identity.resourceId,addonProfiles.azureKeyvaultSecretsProvider.identity.clientId]" -o tsv |  cut -d '/' -f 5,9 --output-delimiter ' '))
+                CLIENT_ID=${CSIIdentity[3]} && echo "CLIENT_ID is $CLIENT_ID"
+                OPENAI_ACCOUNTNAME=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }} --query properties.outputs.openAIAccountName.value -o tsv) && echo "The Azure OpenAI account name is $OPENAI_ACCOUNTNAME"
+                OPENAI_API_BASE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIURL.value -o tsv) && echo "The Azure OpenAI instance API URL is $OPENAI_API_BASE"
+                OPENAI_RGNAME=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIRGName.value -o tsv) && echo "The Azure OpenAI Resource Group is $OPENAI_RGNAME"
+                OPENAI_ENGINE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIEngineName.value -o tsv) && echo "The Azure OpenAI GPT Model is $OPENAI_ENGINE"
+                OPENAI_EMBEDDINGS_ENGINE=$(az deployment sub show --name ${{ env.ARM_DEPLOY_NAME }}  --query properties.outputs.openAIEmbeddingEngine.value -o tsv) && echo "The Azure OpenAI Embedding Model is $OPENAI_EMBEDDINGS_ENGINE"
+
+                cat << EOF > .env
+                CLIENT_ID=$CLIENT_ID
+                TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
+                KV_NAME=$KV_NAME
+                OPENAI_API_BASE=$OPENAI_API_BASE
+                OPENAI_ENGINE=$OPENAI_ENGINE
+                OPENAI_EMBEDDINGS_ENGINE=$OPENAI_EMBEDDINGS_ENGINE
+                LOCATION=$LOCATION
+                BLOB_ACCOUNT_NAME=$BLOB_ACCOUNT_NAME
+                FORM_RECOGNIZER_ENDPOINT=$FORM_RECOGNIZER_ENDPOINT
+                DNS_NAME=openai-$UNIQUESTRING.$INGRESS_IP.nip.io
+                EOF
+            # Runs Kustomize to create manifest files
+            - name: Bake deployment
+              uses: azure/k8s-bake@v2
+              with:
+                renderEngine: "kustomize"
+                kustomizationPath: ${{ env.KUSTOMIZE_PATH }}
+                kubectl-version: latest
+              id: bake
+
+            # Deploys application based on manifest files from previous step
+            - name: Deploy application
+              uses: Azure/k8s-deploy@v4
               with:
                 action: deploy
-                images: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
-                manifests: ${{ env.DEPLOYMENT_MANIFEST_PATH }}
+                manifests: ${{ steps.bake.outputs.manifestsBundle }}
                 namespace: default
+                images: |
+                  ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.CONTAINER_NAME }}:${{ github.sha }}
+
+      
