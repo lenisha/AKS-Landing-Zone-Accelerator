@@ -61,7 +61,7 @@ jobs:
             - name: Save variables 
               shell: bash
               run: |
-                cat << EOF > .env
+                cat << EOF > ./Scenarios/AKS-OpenAI-CogServe-Redis-Embeddings/kubernetes/.env
                 CLIENT_ID=${{ secrets.CLIENT_ID }}
                 TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
                 KV_NAME=${{ secrets.KV_NAME }}
@@ -73,7 +73,7 @@ jobs:
                 FORM_RECOGNIZER_ENDPOINT=${{ secrets.FORM_RECOGNIZER_ENDPOINT }}
                 DNS_NAME=openai-${{ env.INGRESS_IP }}.nip.io
                 EOF
-                cat .env
+                
             # Runs Kustomize to create manifest files
             - name: Bake deployment
               uses: azure/k8s-bake@v2
