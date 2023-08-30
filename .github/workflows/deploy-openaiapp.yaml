@@ -71,7 +71,7 @@ jobs:
                 LOCATION=${{ secrets.LOCATION }}
                 BLOB_ACCOUNT_NAME=${{ secrets.BLOB_ACCOUNT_NAME }}
                 FORM_RECOGNIZER_ENDPOINT=${{ secrets.FORM_RECOGNIZER_ENDPOINT }}
-                DNS_NAME=openai.${{ env.INGRESS_IP }}.nip.io
+                DNS_NAME=openai.${{ vars.INGRESS_IP }}.nip.io
                 EOF
                 
             # Runs Kustomize to create manifest files
